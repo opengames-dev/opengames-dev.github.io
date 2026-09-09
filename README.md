@@ -6,6 +6,19 @@ Four small browser games, made with HTML, CSS, vanilla JavaScript, and original
 geometric artwork. The games are and will remain free, open source, ad-free,
 and playable without an account.
 
+[Source repository](https://github.com/opengames-dev/opengames-dev.github.io) · [Report an issue](https://github.com/opengames-dev/opengames-dev.github.io/issues)
+
+## Development documentation
+
+Start with [AGENTS.md](AGENTS.md) for coding-agent guidance.
+[Adding and maintaining games](docs/GAME_DEVELOPMENT.md) covers shared APIs,
+layout, branding tokens, the integration checklist, and evaluation.
+[Decisions and rationale](docs/DECISIONS.md) records the current product,
+design, technical, and distribution choices, including updates to the original
+[plan](PLAN.md). [TESTING.md](TESTING.md) records actual verification and gaps.
+Update these documents alongside changes so future contributors inherit the
+current decisions rather than reconstructing them from code.
+
 ## Play locally
 
 Open `index.html` in a modern browser. No install, package manager, build step,
@@ -43,8 +56,8 @@ cookies, analytics, external fonts, CDN assets, APIs, or runtime dependencies.
 
 ## Deploy to GitHub Pages
 
-The repository is a ready-to-serve static site. All links are relative, so it
-works both at a domain root and under a repository subpath. `.nojekyll` keeps
+The repository is a ready-to-serve static site. Game navigation and asset paths
+are relative, so it works both at a domain root and under a repository subpath. `.nojekyll` keeps
 these files served directly. No deployment workflow or build is required.
 
 1. Put this directory in your public GitHub repository and push a branch.
@@ -54,10 +67,6 @@ these files served directly. No deployment workflow or build is required.
 
 These steps follow [GitHub’s branch publishing instructions](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
 
-This workspace was supplied without Git metadata or a remote repository, so no
-public deployment or repository URL is configured here. Once published, add the
-actual repository link to `source.html` and this README. The current source page
-links directly to the complete game sources without inventing a repository URL.
 Only configure `CNAME` after choosing and configuring a domain you control.
 
 The first release deliberately does not install a service worker. Downloaded
@@ -89,7 +98,11 @@ snake/                   Canvas game and pure Snake logic
 memory/                  DOM cards and original SVG symbols
 whac-a-mole/             DOM holes and original SVG moles
 tests/                   Logic and optional browser checks
-PLAN.md                  Product direction and quality standards
+AGENTS.md                Coding-agent entry point and working conventions
+docs/GAME_DEVELOPMENT.md  New-game implementation and evaluation guide
+docs/DECISIONS.md         Current choices, rationale, and plan supersessions
+TESTING.md               Verification evidence and outstanding checks
+PLAN.md                  Original product brief and quality standards
 ```
 
 Scripts use ordinary deferred script tags instead of JavaScript modules so that
@@ -132,11 +145,12 @@ verification and outstanding device checks.
 
 ## Contributing
 
-Fixes, accessibility improvements, and playtesting are welcome. Follow `PLAN.md`:
-polish these four games before adding more. Keep source readable and use no
-external runtime dependencies. Share a patch, or open a pull request on the
-repository hosting your copy. Explain the player-visible change and how it was
-tested. Original or compatibly licensed assets only, with attribution when needed.
+Fixes, accessibility improvements, playtesting, and new games are welcome.
+Follow the [development guide](docs/GAME_DEVELOPMENT.md) and
+[decision record](docs/DECISIONS.md); preserve the quality of existing games
+when expanding the collection. Keep source readable and use no external runtime
+dependencies. Share a patch, or open a [pull request](https://github.com/opengames-dev/opengames-dev.github.io/pulls).
+Explain the player-visible change and how it was tested. Original or compatibly licensed assets only, with attribution when needed.
 
 Code, original SVG artwork, and synthesized sound definitions are MIT licensed.
 See `LICENSE`.

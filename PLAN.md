@@ -1,5 +1,14 @@
 # OpenGames.dev --- Project Plan
 
+> This is the original product brief, including illustrative layouts and future
+> ideas. Start with [AGENTS.md](AGENTS.md), the
+> [current decision record](docs/DECISIONS.md), and the
+> [game development guide](docs/GAME_DEVELOPMENT.md) for implementation.
+> Later accepted decisions supersede examples here: compact settings and focused
+> fullscreen replace the original shell sketch; Memory Hard uses a 5×4 board;
+> hosted offline caching remains deferred. [TESTING.md](TESTING.md) distinguishes
+> verified behavior from outstanding quality targets.
+
 ## 1. Project Overview
 
 **OpenGames.dev** is a collection of small, polished, open-source

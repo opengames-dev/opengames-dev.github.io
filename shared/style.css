@@ -62,7 +62,7 @@ canvas { outline-offset: 3px !important; }
 .collapse-icon { display: none; }
 .game-settings { display: block; }
 .game-settings[open] > summary { background: #edeee5; }
-.settings-content { position: absolute; z-index: 10; bottom: calc(100% + 12px); left: 50%; transform: translateX(-50%); width: min(288px, calc(100vw - 24px)); padding: 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 30px #25292120; text-align: left; max-height: calc(100dvh - 88px); overflow-y: auto; }
+.settings-content { translate: var(--menu-x, 0px) var(--menu-y, 0px); position: absolute; z-index: 10; bottom: calc(100% + 12px); left: 50%; transform: translateX(-50%); width: min(288px, calc(100vw - 24px)); padding: 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 30px #25292120; text-align: left; max-height: calc(100dvh - 88px); overflow-y: auto; }
 .settings-label { font-size: 12px; font-weight: 700; margin: 0 0 10px; }
 .difficulty { display: flex; gap: 3px; padding: 3px; background: #eeeee6; border-radius: 9px; }
 .difficulty button { flex: 1; min-height: 44px; padding: 8px; font-size: 12px; border: 0; }
@@ -82,7 +82,7 @@ canvas { outline-offset: 3px !important; }
   .game-layout { grid-template-areas: 'board .' 'board stats' 'board toolbar' 'board dpad' 'board .'; grid-template-columns: var(--board-size) 160px; grid-template-rows: 1fr auto auto auto 1fr; gap: 20px 24px; }
   .game-toolbar { flex-direction: column; gap: 12px; }
   .stats { gap: 16px; }
-  .settings-content { left: auto; right: 0; transform: none; }
+  .settings-content { top: 50%; bottom: auto; left: auto; right: calc(100% + 12px); transform: translateY(-50%); }
   .dpad { display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px); }
   .dpad [data-direction="up"] { grid-area: 1 / 2; }
   .dpad [data-direction="left"] { grid-area: 2 / 1; }
@@ -94,33 +94,33 @@ canvas { outline-offset: 3px !important; }
   .game-header { height: 44px; }
   .game-main { min-height: calc(100dvh - 44px); padding-block: 8px; }
   .game-toolbar { gap: 8px; }
-  .settings-content { bottom: auto; top: 0; right: calc(100% + 12px); }
+  .settings-content { max-height: calc(100dvh - 160px); }
 }
 /* Focus view fills the screen. HUD controls share the game surface, with space
    reserved around the board so they never cover a path, card, or target. */
-.game-page.is-focused { --board-size: min(calc(100vw - 16px), calc((100dvh - 190px) * var(--board-ratio) + 16px), 1000px); position: fixed; inset: 0; background: var(--tint); }
+.game-page.is-focused { --board-size: min(calc(100vw - 16px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)), calc((100dvh - 190px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) * var(--board-ratio) + 16px), 1000px); position: fixed; inset: 0; background: var(--tint); }
 .is-focused .game-header, .is-focused .skip-link { display: none; }
 .is-focused .game-main { width: 100%; height: 100%; min-height: 0; padding: 0; }
 .is-focused .game-layout { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 .is-focused .play-area { flex: 0 0 auto; box-shadow: none; }
-.is-focused .stats { position: absolute; top: max(12px, env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); padding: 8px 16px; background: var(--paper); border-radius: 10px; }
-.is-focused .game-toolbar { position: absolute; bottom: max(12px, env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); flex-direction: row; gap: 8px; }
+.is-focused .stats { position: absolute; top: max(12px, env(safe-area-inset-top, 0px)); left: 0; right: 0; margin-inline: auto; width: max-content; padding: 8px 16px; background: var(--paper); border-radius: 10px; }
+.is-focused .game-toolbar { position: absolute; bottom: max(12px, env(safe-area-inset-bottom, 0px)); left: 0; right: 0; margin-inline: auto; flex-direction: row; gap: 8px; }
 .is-focused .game-toolbar button, .is-focused summary, .is-focused .dpad button { background: var(--paper); }
-.is-focused .dpad { position: absolute; bottom: calc(max(12px, env(safe-area-inset-bottom, 0px)) + 60px); left: 50%; transform: translateX(-50%); display: flex; }
+.is-focused .dpad { position: absolute; bottom: calc(max(12px, env(safe-area-inset-bottom, 0px)) + 60px); left: 0; right: 0; margin-inline: auto; width: max-content; display: flex; }
 .is-focused .settings-content { top: auto; bottom: calc(100% + 12px); left: 50%; right: auto; transform: translateX(-50%); }
 .is-focused .expand-icon { display: none; }
 .is-focused .collapse-icon { display: block; }
 @media (orientation: landscape) {
-  .game-page.is-focused { --board-size: min(calc(100vw - 184px), calc((100dvh - 32px) * var(--board-ratio) + 16px), 1000px); }
-  .is-focused .game-layout { padding-right: 184px; }
-  .is-focused .stats { right: max(12px, env(safe-area-inset-right, 0px)); left: auto; transform: none; gap: 12px; padding: 10px; }
-  .is-focused .game-toolbar { top: calc(max(12px, env(safe-area-inset-top, 0px)) + 76px); right: max(12px, env(safe-area-inset-right, 0px)); left: auto; bottom: auto; transform: none; flex-direction: column; }
-  .is-focused .dpad { right: max(12px, env(safe-area-inset-right, 0px)); left: auto; bottom: max(12px, env(safe-area-inset-bottom, 0px)); transform: none; display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px); }
+  .game-page.is-focused { --board-size: min(calc(100vw - 216px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)), calc((100dvh - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) * var(--board-ratio) + 16px), 1000px); }
+  .is-focused .game-layout { padding-right: calc(216px + env(safe-area-inset-right, 0px)); padding-left: env(safe-area-inset-left, 0px); }
+  .is-focused .stats { right: max(12px, env(safe-area-inset-right, 0px)); left: auto; margin-inline: 0; gap: 12px; padding: 10px; }
+  .is-focused .game-toolbar { top: calc(max(12px, env(safe-area-inset-top, 0px)) + 76px); right: max(12px, env(safe-area-inset-right, 0px)); left: auto; bottom: auto; margin-inline: 0; flex-direction: column; }
+  .is-focused .dpad { right: max(12px, env(safe-area-inset-right, 0px)); left: auto; bottom: max(12px, env(safe-area-inset-bottom, 0px)); margin-inline: 0; display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px); }
   .is-focused .dpad [data-direction="up"] { grid-area: 1 / 2; }
   .is-focused .dpad [data-direction="left"] { grid-area: 2 / 1; }
   .is-focused .dpad [data-direction="down"] { grid-area: 2 / 2; }
   .is-focused .dpad [data-direction="right"] { grid-area: 2 / 3; }
-  .is-focused .settings-content { top: 0; bottom: auto; left: auto; right: calc(100% + 12px); transform: none; }
+  .is-focused .settings-content { top: 0; bottom: auto; left: auto; right: calc(100% + 12px); transform: none; max-height: calc(100dvh - 100px); }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }

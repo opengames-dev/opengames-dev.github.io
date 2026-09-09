@@ -1,5 +1,21 @@
 # Verification record
 
+For future changes, use the [evaluation matrix](docs/GAME_DEVELOPMENT.md#evaluation-and-handoff)
+and [decision record](docs/DECISIONS.md). The passes below describe the original
+four games and the focused-layout review; they do not automatically cover future
+games or changes.
+
+## Recording future verification
+
+Append or update evidence for each meaningful implementation change: date and
+scope, commands/suites, browser versions and environment, viewports/difficulties,
+manual visual/play checks, payload measurements when changed, and failures or
+untested devices. Distinguish automated emulation from physical-device checks.
+Preserve historical scope instead of relabeling old results as current passes.
+Documentation-only edits need link and source-contract checks, not gameplay runs.
+
+## Baseline environment
+
 Verified on 2026-09-09 in desktop Chromium (Google Chrome) and Playwright Firefox.
 The app was served with Python's static HTTP server and opened directly using
 `file://`. Browser tooling was installed outside the project.
@@ -46,6 +62,10 @@ board and control bounds, side-by-side tablet/desktop layouts, larger fullscreen
 boards, unobstructed game cells, menu bounds, native fullscreen entry/exit,
 Escape, prior pause-state preservation, and the no-Fullscreen-API fallback.
 
+Firefox headless switches to its virtual monitor dimensions for native
+fullscreen. Those checks use the actual fullscreen viewport; phone fullscreen
+layouts are additionally checked in Chromium and with the API fallback.
+
 ## Device checks still needed
 
 Touch and mobile layouts were tested through desktop browser emulation, not
@@ -54,9 +74,8 @@ Safari/iOS, and audible sound quality still need hands-on checks before calling
 all of `PLAN.md`'s device-specific acceptance items complete. These limitations
 are not covered by the automated passing results above.
 
-GitHub Pages publication has not been exercised because this workspace has no
-Git repository or remote. The static files, relative paths, `.nojekyll`, and
-publishing instructions are ready; no service-worker offline cache is included
+GitHub Pages deployment has not been verified as part of these checks.
+The static files, relative paths, `.nojekyll`, and publishing instructions are ready; no service-worker offline cache is included
 in this first release.
 
 ## Repeat the checks
