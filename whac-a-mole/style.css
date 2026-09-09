@@ -1,0 +1,12 @@
+.mole-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; touch-action: manipulation; }
+.hole { min-width: 0; min-height: 0; padding: 0; border: 0; background: transparent; position: relative; overflow: hidden; border-radius: 14px; touch-action: manipulation; }
+.hole::before { content: ''; position: absolute; bottom: 8%; left: 5%; width: 90%; height: 34%; background: #674c32; border-radius: 50%; box-shadow: 0 5px 0 #b8a17d; }
+.hole:hover { background: #ddc9a355; }
+.mole-clip { position: absolute; inset: 0 5% 14%; overflow: hidden; border-radius: 0 0 48% 48%; }
+.mole { position: absolute; left: 4%; bottom: -2%; width: 92%; height: 85%; transform: translateY(105%); transition: transform .13s ease-out; }
+.hole.up .mole { transform: translateY(0); }
+.hole.hit .mole { transform: translateY(20%) rotate(-9deg); }
+.hole.hit::after { content: '+1'; position: absolute; inset: 10% 0 auto; color: #365a32; font-size: clamp(20px, 5vw, 32px); font-weight: 800; text-shadow: 0 1px 0 #f8f7f2; animation: pop .25s ease-out; }
+.hole-number { position: absolute; bottom: 1%; left: 0; right: 0; color: #674c32; font: bold 11px 'Courier New', monospace; }
+@keyframes pop { from { transform: translateY(8px); opacity: .3; } to { transform: translateY(0); opacity: 1; } }
+.hole-number { width: 20px; height: 16px; margin-inline: auto; bottom: 0; line-height: 16px; background: #f2e4ce; border-radius: 4px; }

@@ -1,0 +1,14 @@
+.memory-board { display: grid; grid-template-columns: repeat(var(--columns, 4), 1fr); gap: clamp(5px, 1.7vw, 10px); touch-action: manipulation; }
+.memory-card { min-height: 0; min-width: 0; padding: 0; position: relative; border: 0; border-radius: 7px; background: transparent; perspective: 650px; }
+.memory-card:hover { background: transparent; }
+.card-inner { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .22s ease; }
+.card-back, .card-front { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 7px; backface-visibility: hidden; }
+.card-back { background: #795c84; color: #d9c7df; border: 1px solid #654772; }
+.card-back::after { content: '✳'; font-size: clamp(20px, 6vw, 38px); }
+.card-front { background: #fffcf5; color: #654472; transform: rotateY(180deg); border: 1px solid #c3b1ca; }
+.card-front svg { width: 55%; height: 55%; }
+.memory-card.revealed .card-inner, .memory-card.matched .card-inner { transform: rotateY(180deg); }
+.memory-card.matched .card-front { background: #e0ebd8; color: #3a633f; border-color: #b2c9a6; }
+.memory-card.matched .card-front::after { content: '✓'; position: absolute; right: 5px; bottom: 2px; font-size: 11px; }
+.memory-card:hover:not(.revealed):not(.matched) .card-back { background: #684c74; }
+.memory-card:active { transform: none; }
