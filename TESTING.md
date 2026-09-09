@@ -78,6 +78,37 @@ GitHub Pages deployment has not been verified as part of these checks.
 The static files, relative paths, `.nojekyll`, and publishing instructions are ready; no service-worker offline cache is included
 in this first release.
 
+## Dune addition — 2026-09-09
+
+Dune was verified after integration as the fifth game. The built-in Node suite
+now passes eight groups, including terrain continuity, difficulty defaults,
+held dive force in the air and on the terrain, held input preserved through a
+landing, automatic launch, scoring, slope-matched landing, hard-impact loss, and
+terminal input. JavaScript syntax checks and `git diff --check` passed.
+
+The browser integration suite passed in Google Chrome and Playwright Firefox,
+including grounded and airborne pointer/keyboard hold/release, scoring, pause
+without simulation advance, forced hard landing, best-score persistence,
+immediate replay, DPR canvas rendering, difficulty and sound controls, direct
+`file://` play, and no
+page or console errors. Restricted-API checks passed in Chromium for all five
+games with storage, audio, and gamepad APIs unavailable.
+
+The focus suite passed for all five games in Chromium and Firefox at 1440×900,
+768×1024, 800×600, 390×844, 320×568, 844×390, and 568×320. It covered normal
+and native-fullscreen layouts, unobstructed boards and controls, settings bounds,
+pause-state restoration, Escape handling, and the no-Fullscreen-API fallback.
+Desktop 1280×900 and phone 390×844 Dune gameplay plus the five-card homepage
+were visually inspected from screenshots. A follow-up grounded-dive screenshot
+confirmed that the filled indicator arrow points down and remains clear against
+the terrain. The Dune runtime is 43,045 bytes
+uncompressed including shared scripts, styles, and favicon; all homepage and
+game runtime assets total 108,171 bytes.
+
+The new game has not been played on a physical touchscreen, Safari/iOS, or with
+audible sound. It deliberately does not claim gamepad support. Public deployment
+remains unverified.
+
 ## Repeat the checks
 
 See `README.md` for setup. Run the built-in logic suite, `tests/browser.cjs` for

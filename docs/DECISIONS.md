@@ -165,6 +165,36 @@ Physical Android/iOS, hardware gamepad feel, Safari, audible sound quality, and
 public deployment have not all been verified. Keep limitations visible in
 TESTING.md; do not convert goals or emulation passes into claims of coverage.
 
+## D11 — Dune game
+
+**Decision (2026-09-09):** Dune is an endless one-button canvas game. The ball
+rides a continuous generated dune profile and launches near crests. Holding the
+board, Space, or Enter applies a pronounced downward force in the air and extra
+terrain pressure while grounded; the input remains active through a landing.
+Releasing restores normal gravity and allows crest launches. A filled downward
+arrow confirms the active dive at every point in the run. A landing scores one
+point, plus one for a closely slope-matched impact
+and one for a high flight. An impact above the difficulty's tolerance ends the
+run. Easy, Normal, and Hard tune starting speed, airborne gravity, dive force,
+and landing tolerance. Score and per-difficulty best score are the only visible
+stats; `opengames:dune:best:<difficulty>` stores the latter and rejects malformed
+values by falling back to zero.
+
+The terrain and physics live in testable `dune/logic.js`; rendering uses original
+canvas geometry and the shared square-board shell. Pointer and keyboard controls
+are first-class. Gamepad is not claimed because the shared input contract does
+not currently expose a held-action release, and a fake directional mapping would
+obscure the mechanic.
+
+**Reason:** The requested “ball jumping into valleys” benefits from direct,
+continuous timing rather than discrete movement. Fixed-step normalized physics
+keeps behavior independent of canvas size and frame rate. Scored landing quality
+makes the goal legible without copying commercial artwork, sound, or level data.
+
+**Validation implications:** Exercise hold and release, automatic launches,
+soft and hard landings, all difficulty profiles, score persistence, pause/blur,
+replay, DPR rendering, direct-file play, reduced motion, and focused layouts.
+
 ## Maintaining this record
 
 For a new decision, add a stable D-number, date, choice, reason, affected files

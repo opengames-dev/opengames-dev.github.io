@@ -195,7 +195,7 @@ requires extending layout checks rather than forcing the old square assumption.
 3. Add original art and any scoped styling; set board ratio and accent/tint.
    Keep targets comfortably tappable at the hardest difficulty on small phones.
 4. Add a whole-card link and lightweight SVG preview to ../index.html. Update
-   preview color, sequential number, collection count, and “Four”/“04” copy in
+   preview color, sequential number, collection count, and game-count copy in
    metadata or descriptions to match the actual collection. Do not add a loader
    or runtime registry just to populate a few cards.
 5. Add readable GitHub file links to ../source.html using the canonical repo's

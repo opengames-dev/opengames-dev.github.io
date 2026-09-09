@@ -1,0 +1,3 @@
+.game-page[data-game="dune"] { --accent: #8a5f32; --tint: #f0dfbf; }
+.dune-board { cursor: pointer; background: #edf1df; }
+.dune-board.is-diving { cursor: ns-resize; }

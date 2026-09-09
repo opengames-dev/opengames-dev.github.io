@@ -4,7 +4,7 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { chromium, firefox } = require('playwright');
 const base = process.env.TEST_URL || 'http://127.0.0.1:8080/';
-const games = ['labyrinth', 'snake', 'memory', 'whac-a-mole'];
+const games = ['labyrinth', 'snake', 'memory', 'whac-a-mole', 'dune'];
 const errors = [];
 
 async function visit(page, game) {
@@ -33,7 +33,7 @@ async function run(browser, label, touch = false) {
     for (const game of ['', ...games]) {
       await visit(page, game);
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${label} ${game} overflows at ${viewport.width}`);
-      if (!game) { assert.equal(await page.locator('.game-card').count(), 4); continue; }
+      if (!game) { assert.equal(await page.locator('.game-card').count(), 5); continue; }
       const box = await page.locator('#board').boundingBox();
       assert(box.width >= 180 && box.width <= 1000, `${label} ${game}: invalid board ${box.width}`);
       if (game !== 'memory') assert(Math.abs(box.width - box.height) < 2, `${label} ${game}: nonsquare board`);
@@ -43,7 +43,7 @@ async function run(browser, label, touch = false) {
       await press(page, '#sound');
       assert.equal(await page.locator('#sound').getAttribute('aria-pressed'), 'true');
       await press(page, '#sound');
-      if (game === 'labyrinth' || game === 'snake') {
+      if (game === 'labyrinth' || game === 'snake' || game === 'dune') {
         assert(await page.locator('canvas').evaluate(canvas => Math.abs(canvas.width - canvas.getBoundingClientRect().width * devicePixelRatio) < 2));
       }
     }
@@ -185,6 +185,63 @@ async function run(browser, label, touch = false) {
   await press(page, '#restart');
   assert.equal(await page.locator('#overlay').isVisible(), false);
   console.log(`${label}: Mole touch/click, double-hit protection, keyboard, timer, and replay passed`);
+
+  await visit(page, 'dune');
+  await page.evaluate(() => {
+    const create = DuneLogic.create;
+    DuneLogic.create = (...args) => {
+      window.testDune = create(...args);
+      return window.testDune;
+    };
+  });
+  await press(page, '#restart');
+  assert.equal(await page.evaluate(() => window.testDune.grounded), true);
+  await page.locator('#board').hover();
+  await page.mouse.down();
+  assert.equal(await page.evaluate(() => window.testDune.held), true);
+  assert.equal(await page.locator('#board').evaluate(board => board.classList.contains('is-diving')), true);
+  await page.mouse.up();
+  assert.equal(await page.evaluate(() => window.testDune.held), false);
+  await page.locator('#board').focus();
+  await page.keyboard.down('Space');
+  assert.equal(await page.evaluate(() => window.testDune.held), true);
+  await page.keyboard.up('Space');
+  assert.equal(await page.evaluate(() => window.testDune.held), false);
+  await page.clock.runFor(3200);
+  assert(Number(await page.locator('#score').textContent()) > 0);
+  await page.keyboard.press('Escape');
+  const duneX = await page.evaluate(() => window.testDune.x);
+  await page.clock.runFor(5000);
+  assert.equal(await page.evaluate(() => window.testDune.x), duneX);
+  await press(page, '#overlay-action');
+  await page.evaluate(() => {
+    const state = window.testDune;
+    state.x = 0.3;
+    state.grounded = false;
+    state.airTime = 1;
+    state.y = DuneLogic.terrainHeight(state.x) - DuneLogic.radius - 0.002;
+    state.vx = 0.4;
+    state.vy = 1.2;
+  });
+  await page.clock.runFor(40);
+  assert.equal(await page.locator('#overlay-title').textContent(), 'Hard landing');
+  const duneScore = await page.locator('#score').textContent();
+  assert.equal(await page.locator('#best').textContent(), duneScore);
+  await press(page, '#overlay-action');
+  assert.equal(await page.locator('#overlay').isVisible(), false);
+  assert.equal(await page.locator('#score').textContent(), '0');
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  assert.equal(await page.locator('#pause').textContent(), 'Resume');
+  await press(page, '#overlay-action');
+  await page.reload();
+  assert.equal(await page.locator('#best').textContent(), duneScore);
+  await page.evaluate(() => {
+    localStorage.setItem('opengames:dune:difficulty', 'hard');
+    localStorage.setItem('opengames:dune:best:hard', 'not-a-score');
+  });
+  await page.reload();
+  assert.equal(await page.locator('#best').textContent(), '0');
+  console.log(`${label}: Dune hold/release, scoring, pause, crash, persistence, and replay passed`);
 
   // No web server is required. All pages also load through file://.
   for (const game of games) {

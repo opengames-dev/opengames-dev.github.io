@@ -2,7 +2,7 @@
 const assert = require('node:assert/strict');
 const { chromium, firefox } = require('playwright');
 const base = process.env.TEST_URL || 'http://127.0.0.1:8080/';
-const games = ['labyrinth', 'snake', 'memory', 'whac-a-mole'];
+const games = ['labyrinth', 'snake', 'memory', 'whac-a-mole', 'dune'];
 const viewports = [
   {width:1440,height:900}, {width:768,height:1024}, {width:800,height:600},
   {width:390,height:844}, {width:320,height:568}, {width:844,height:390}, {width:568,height:320}

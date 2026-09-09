@@ -92,7 +92,7 @@ const base = process.env.TEST_URL || 'http://127.0.0.1:8080/';
     });
     const restrictedPage = await restricted.newPage();
     restrictedPage.on('pageerror', error => errors.push(error.message));
-    for(const game of ['labyrinth','snake','memory','whac-a-mole']) {
+    for(const game of ['labyrinth','snake','memory','whac-a-mole','dune']) {
       await restrictedPage.goto(base + game + '/');
       await restrictedPage.locator('#settings summary').click();
       await restrictedPage.locator('#sound').click();

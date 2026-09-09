@@ -27,6 +27,7 @@
 .preview-snake { background: #e0e9dd; }
 .preview-memory { background: #eae0ed; }
 .preview-mole { background: #efe1c9; }
+.preview-dune { background: #eee5c8; }
 .game-number { position: absolute; top: 18px; left: 20px; color: #464b4090; font: 11px 'Courier New', monospace; }
 .card-info { padding: 22px 24px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .card-info h3 { margin: 0 0 7px; font-size: 23px; letter-spacing: -.7px; }

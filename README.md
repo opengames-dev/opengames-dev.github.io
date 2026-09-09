@@ -2,7 +2,7 @@
 
 **No ads. No accounts. No tracking. Just games.**
 
-Four small browser games, made with HTML, CSS, vanilla JavaScript, and original
+Five small browser games, made with HTML, CSS, vanilla JavaScript, and original
 geometric artwork. The games are and will remain free, open source, ad-free,
 and playable without an account.
 
@@ -38,6 +38,7 @@ Then open <http://127.0.0.1:8080>.
 | Snake | Arrows / WASD, swipe, on-screen arrows, gamepad | Three starting speeds; faster as you grow |
 | Memory | Tap/click; arrows to select, Enter/Space to flip | 2, 8, or 10 pairs; large touch targets |
 | Whac-A-Mole | Tap/click; keys 1–9; arrows to select and Space to hit | Three reaction windows; 30-second rounds |
+| Dune | Hold Space / Enter or press the board; release to fly | Three speeds, dive forces, and landing tolerances |
 
 All games have immediate restart, difficulty selection, optional synthesized
 sound, and fullscreen. Escape closes settings or exits fullscreen first; during
@@ -97,6 +98,7 @@ labyrinth/               Canvas game and pure maze logic
 snake/                   Canvas game and pure Snake logic
 memory/                  DOM cards and original SVG symbols
 whac-a-mole/             DOM holes and original SVG moles
+dune/                    Canvas terrain, motion, and pure physics logic
 tests/                   Logic and optional browser checks
 AGENTS.md                Coding-agent entry point and working conventions
 docs/GAME_DEVELOPMENT.md  New-game implementation and evaluation guide
@@ -106,11 +108,12 @@ PLAN.md                  Original product brief and quality standards
 ```
 
 Scripts use ordinary deferred script tags instead of JavaScript modules so that
-opening files directly works. Only the two canvas games have separate pure
+opening files directly works. The three canvas games have separate pure
 logic files. Shared utilities handle actual cross-game behavior; there is no
-game engine. Maze generation uses randomized depth-first search. Snake uses a
-fixed simulation step, buffers up to two valid turns, and permits entering the
-cell vacated by its tail. Card resolution and mole timing stop while paused.
+game engine. Maze generation uses randomized depth-first search. Snake and Dune
+use fixed simulation steps. Snake buffers up to two valid turns and permits
+entering the cell vacated by its tail. Card resolution and mole timing stop while
+paused.
 
 ## Verification
 
@@ -122,7 +125,8 @@ node --test tests/logic.test.cjs
 
 It checks connectivity, reciprocal walls, boundary walls, and tree structure for
 120 generated mazes, plus Snake's input queue, reversals, growth, food placement,
-wall/body collisions, tail movement, and full-board victory.
+wall/body collisions, tail movement, and full-board victory. It also checks Dune
+terrain, dive force, launches, scoring, soft landings, and crashes.
 
 Browser checks are optional development tools, not app dependencies. With Node
 20+ and Playwright available outside the repository, start the preview server
