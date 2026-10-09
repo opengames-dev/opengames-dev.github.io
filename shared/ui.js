@@ -158,20 +158,21 @@ window.OG = (() => {
     };
   }
   // Canvas coordinates stay in CSS pixels; the backing buffer tracks display density.
+  // Draw receives (context, width, height); square boards can use width alone.
   function canvasView(canvas, draw) {
     const context = canvas.getContext('2d');
-    let size = 0;
+    let width = 0, height = 0;
     function resize() {
-      size = canvas.getBoundingClientRect().width;
+      ({ width, height } = canvas.getBoundingClientRect());
       const ratio = window.devicePixelRatio || 1;
-      canvas.width = Math.round(size * ratio);
-      canvas.height = Math.round(size * ratio);
+      canvas.width = Math.round(width * ratio);
+      canvas.height = Math.round(height * ratio);
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
-      draw(context, size);
+      draw(context, width, height);
     }
     new ResizeObserver(resize).observe(canvas);
     window.addEventListener('resize', resize);
-    return { draw: () => { if (size) draw(context, size); } };
+    return { draw: () => { if (width) draw(context, width, height); } };
   }
   return { storage, formatTime, createUI, canvasView, reducedMotion: matchMedia('(prefers-reduced-motion: reduce)') };
 })();

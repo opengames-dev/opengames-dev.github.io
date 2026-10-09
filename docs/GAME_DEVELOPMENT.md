@@ -13,6 +13,8 @@ adding a game. [README.md](../README.md) contains runnable setup commands;
 | Continuous simulation with collision and score | [Snake game](../snake/game.js), [pure logic](../snake/logic.js) |
 | Accessible DOM grid, selection, rectangular sizing | [Memory HTML](../memory/index.html), [game](../memory/game.js), [styles](../memory/style.css) |
 | Timed direct targets and pointer/keyboard actions | [Whac-A-Mole game](../whac-a-mole/game.js), [styles](../whac-a-mole/style.css) |
+| Real-time physics, one-button input, hover-until-first-action start | [Flap game](../flap/game.js), [pure logic](../flap/logic.js) |
+| Rectangular canvas, extra on-screen buttons, held vs. repeated input | [Blocks game](../blocks/game.js), [pure logic](../blocks/logic.js), [layout](../blocks/style.css) |
 
 Create a lowercase hyphenated directory with index.html and game.js. Add style.css
 only for game-specific drawing/layout and logic.js when useful for rule tests.
@@ -28,6 +30,13 @@ Copy an existing entry page and adapt its game-specific content. Load
 `audio.js`, `ui.js`, `input.js` from shared/, optional local logic.js, then game.js.
 Keep viewport-fit=cover, metadata, shared favicon, skip link, and noscript text.
 Use relative paths for runtime assets and navigation.
+
+Every local stylesheet and script URL carries one release token, currently
+`?v=2026-10-09`, on every page (homepage and source page included). When any
+runtime CSS/JS file changes, replace the token on all pages. Otherwise a browser
+or GitHub Pages cache can pair a new game file with an old shared helper; this
+happened during Blocks development and broke its drawing. The browser suite
+fails on missing or mixed tokens. Query strings are ignored for `file://`.
 
 The shell has this structure (omit the D-pad when it does not fit the game):
 
@@ -79,7 +88,7 @@ arrow navigation, following Memory/Mole. Decorative SVGs use aria-hidden=true.
 | `ui.announce(message)` | Updates the polite status region. Use meaningful state changes, not frame-by-frame announcements. |
 | `OG.storage.get(key, fallback)` / `.set(key, value)` | Adds `opengames:` prefix. Get returns stored string or fallback; set stringifies. Handles denied storage. Validate numeric values in the game. |
 | `OG.formatTime(seconds)` | Nonnegative whole minutes:seconds. Convert millisecond timers before calling. |
-| `OG.canvasView(canvas, draw)` | Square canvas only. Callback receives `(context, size)` in CSS pixels. Resizes backing buffer for DPR and observes layout; returned `.draw()` requests a redraw. Guard draw before game state is initialized. |
+| `OG.canvasView(canvas, draw)` | Callback receives `(context, width, height)` in CSS pixels; square boards may use width alone. Resizes the backing buffer to the displayed box × DPR and observes layout; returned `.draw()` requests a redraw. Guard draw before game state is initialized. |
 | `OG.reducedMotion.matches` | Live media-query state for JS animation; suppress decorative interpolation/pulses when true. |
 
 Current storage keys are `opengames:sound`, `opengames:<slug>:difficulty`, and
@@ -96,7 +105,10 @@ state guards for global keyboard and gamepad input.
 ### Input (`window.OGInput` in shared/input.js)
 
 `OGInput.bind({ surface, direction, action, pause, restart, hold = false,
-swipe = true })` binds once per page. Direction receives up/down/left/right.
+swipe = true })` binds once per page. Direction receives up/down/left/right and
+a second `repeat` boolean: true for held-key repeats, held on-screen button
+repeats, and held gamepad repeats. Blocks uses it so held ↑ rotates once while
+held ←/→/↓ keep moving.
 Action/start/replay behavior is game-owned; the helper does not know game state.
 
 - Arrows/WASD map to direction; Space/Enter to action outside native interactive
@@ -159,6 +171,8 @@ body[data-game]; do not accidentally alter another game's shell.
 | Snake accent / tint | #3c6045 / #e3eddf |
 | Memory accent / tint | #785783 / #eee3f0 |
 | Whac-A-Mole accent / tint | #92542b / #f2e4ce |
+| Flap accent / tint | #3f6377 / #e1eaee |
+| Blocks accent / tint | #50557a / #e6e6ef |
 | Main font stack | Trebuchet MS, Segoe UI, sans-serif |
 | Small editorial labels | Courier New, monospace; homepage/source only where appropriate |
 | Controls | 44px minimum target height; icon/D-pad buttons 44×44px |
@@ -181,8 +195,11 @@ insets; never replace it with width-only board sizing.
 For rectangular DOM boards, set both the board's aspect-ratio and
 `document.body.style.setProperty('--board-ratio', width / height)`, as Memory
 does. The variable must be on the body because shared sizing consumes it there.
-OG.canvasView always makes a square buffer; a rectangular canvas requires an
-explicit adaptation plus DPR/resize tests. A new board shape or large stat panel
+Rectangular canvases need the same treatment in CSS: Blocks sets
+`--board-ratio: .5` and `aspect-ratio: 1 / 2` in its own stylesheet, and
+OG.canvasView sizes the buffer from the displayed box. A tall board is limited
+by height, so Blocks also reserves room for its control row on phones and uses
+the side-panel focus layout on portrait screens at least 600px wide. A new board shape or large stat panel
 requires extending layout checks rather than forcing the old square assumption.
 
 ## New-game integration checklist
@@ -195,7 +212,7 @@ requires extending layout checks rather than forcing the old square assumption.
 3. Add original art and any scoped styling; set board ratio and accent/tint.
    Keep targets comfortably tappable at the hardest difficulty on small phones.
 4. Add a whole-card link and lightweight SVG preview to ../index.html. Update
-   preview color, sequential number, collection count, and “Four”/“04” copy in
+   preview color, sequential number, collection count, and “Six”/“06” copy in
    metadata or descriptions to match the actual collection. Do not add a loader
    or runtime registry just to populate a few cards.
 5. Add readable GitHub file links to ../source.html using the canonical repo's
@@ -203,7 +220,7 @@ requires extending layout checks rather than forcing the old square assumption.
    introduction, project map as needed, and any changed input claims.
 6. Extend the explicit game lists in tests/browser.cjs, tests/focus-browser.cjs,
    and the unavailable-API loop in tests/input-browser.cjs. Update the homepage
-   card-count assertion (currently 4). Inspect square-board assumptions, minimum
+   card-count assertion (currently 6). Inspect square-board assumptions, minimum
    board sizes, startup handling, and selectors instead of adding the slug blind.
    Add start-to-finish tests for the new mechanic and applicable input cases.
 7. Run the evaluation below, inspect visuals, record actual results/limitations

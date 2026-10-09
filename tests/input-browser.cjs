@@ -78,11 +78,65 @@ const base = process.env.TEST_URL || 'http://127.0.0.1:8080/';
     await page.clock.runFor(32);
     assert.equal(await page.locator('#overlay').isVisible(), false);
 
+    // Flap: a touch tap flaps; a gamepad A press flaps; D-pad up flaps too.
+    await page.goto(base + 'flap/');
+    await page.evaluate(() => {
+      const create=FlapLogic.create;
+      FlapLogic.create=(...args)=>{window.testFlap=create(...args);return window.testFlap;};
+    });
+    await page.locator('#restart').click({force:true});
+    await page.locator('#board').tap();
+    assert.equal(await page.evaluate(() => window.testFlap.started), true);
+    await page.locator('#restart').click({force:true});
+    await page.evaluate(() => {
+      window.testPad={axes:[0,0],buttons:Array.from({length:16},(_,i)=>({pressed:i===0}))};
+      window.dispatchEvent(new Event('gamepadconnected'));
+    });
+    await page.clock.runFor(32);
+    assert.equal(await page.evaluate(() => window.testFlap.started), true);
+    assert(await page.evaluate(() => window.testFlap.bird.vy < 0));
+    await page.locator('#restart').click({force:true});
+    await page.evaluate(() => { window.testPad.buttons[0].pressed=false; window.testPad.buttons[12].pressed=true; });
+    await page.clock.runFor(32);
+    assert.equal(await page.evaluate(() => window.testFlap.started), true);
+    await page.evaluate(() => { window.testPad.buttons[12].pressed=false; window.testPad.buttons[9].pressed=true; });
+    await page.clock.runFor(32);
+    assert.equal(await page.locator('#pause').textContent(), 'Resume');
+    await page.evaluate(() => { window.testPad=null; });
+
+    // Blocks: a short tap rotates, a horizontal drag moves, and gamepad A hard-drops.
+    await page.goto(base + 'blocks/');
+    await page.evaluate(() => {
+      const create=BlocksLogic.create;
+      BlocksLogic.create=(...args)=>{window.testBlocks=create(...args);window.testBlocks.piece={name:'T',r:0,x:3,y:0};return window.testBlocks;};
+    });
+    await page.locator('#restart').click({force:true});
+    await page.locator('#board').tap();
+    assert.equal(await page.evaluate(() => window.testBlocks.piece.r), 1);
+    const well = await page.locator('#board').boundingBox();
+    const at = {x:well.x + well.width / 2, y:well.y + well.height / 2};
+    await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[at]});
+    await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:at.x - 25,y:at.y}]});
+    await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:at.x - 50,y:at.y}]});
+    await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    assert.equal(await page.evaluate(() => window.testBlocks.piece.x), 1);
+    assert.equal(await page.evaluate(() => window.testBlocks.piece.r), 1, 'a drag does not also rotate');
+    await page.evaluate(() => {
+      window.testPad={axes:[0,0],buttons:Array.from({length:16},(_,i)=>({pressed:i===0}))};
+      window.dispatchEvent(new Event('gamepadconnected'));
+    });
+    await page.clock.runFor(32);
+    assert.equal(await page.evaluate(() => window.testBlocks.grid.flat().filter(Boolean).length), 4);
+    await page.evaluate(() => { window.testBlocks.piece={name:'T',r:0,x:3,y:0}; window.testPad.buttons[0].pressed=false; window.testPad.buttons[12].pressed=true; });
+    await page.clock.runFor(400);
+    assert.equal(await page.evaluate(() => window.testBlocks.piece.r), 1, 'held D-pad up rotates once');
+    await page.evaluate(() => { window.testPad=null; });
+
     await page.goto(base + 'memory/');
     await page.locator('.memory-card').first().tap();
     assert.equal(await page.locator('.revealed').count(),1);
     await context.close();
-    console.log('Touch swipe/tap, 2× canvas resolution, and synthetic gamepad analog/D-pad/action/pause passed.');
+    console.log('Touch swipe/tap, 2× canvas resolution, Flap tap/gamepad flaps, Blocks tap/drag/gamepad, and synthetic gamepad analog/D-pad/action/pause passed.');
 
     const restricted = await browser.newContext();
     await restricted.addInitScript(() => {
@@ -92,7 +146,7 @@ const base = process.env.TEST_URL || 'http://127.0.0.1:8080/';
     });
     const restrictedPage = await restricted.newPage();
     restrictedPage.on('pageerror', error => errors.push(error.message));
-    for(const game of ['labyrinth','snake','memory','whac-a-mole']) {
+    for(const game of ['labyrinth','snake','memory','whac-a-mole','flap','blocks']) {
       await restrictedPage.goto(base + game + '/');
       await restrictedPage.locator('#settings summary').click();
       await restrictedPage.locator('#sound').click();

@@ -2,7 +2,7 @@
 
 **No ads. No accounts. No tracking. Just games.**
 
-Four small browser games, made with HTML, CSS, vanilla JavaScript, and original
+Six small browser games, made with HTML, CSS, vanilla JavaScript, and original
 geometric artwork. The games are and will remain free, open source, ad-free,
 and playable without an account.
 
@@ -38,12 +38,15 @@ Then open <http://127.0.0.1:8080>.
 | Snake | Arrows / WASD, swipe, on-screen arrows, gamepad | Three starting speeds; faster as you grow |
 | Memory | Tap/click; arrows to select, Enter/Space to flip | 2, 8, or 10 pairs; large touch targets |
 | Whac-A-Mole | Tap/click; keys 1–9; arrows to select and Space to hit | Three reaction windows; 30-second rounds |
+| Flap | Tap/click the board, Space / Enter / ↑ / W, gamepad A or D-pad up | Gap size and speed; slightly faster as you score |
+| Blocks | Arrows / WASD, X / Z rotate, Space drops; swipe to move, tap to rotate; on-screen buttons; gamepad | Starting level 1, 3, or 6; faster every 10 lines |
 
 All games have immediate restart, difficulty selection, optional synthesized
 sound, and fullscreen. Escape closes settings or exits fullscreen first; during
 normal play it pauses. R restarts.
-Labyrinth and Snake support a standard gamepad's D-pad or left stick, A for
-start/resume/replay, and Start for pause. Press a gamepad button to let the
+Labyrinth, Snake, and Blocks support a standard gamepad's D-pad or left stick, A for
+start/resume/replay (Blocks: hard drop), and Start for pause. Flap uses A or
+D-pad up to flap. Press a gamepad button to let the
 browser detect it. Memory's Home/End keys select the first/last card.
 
 Games pause when the tab becomes hidden or an active game loses window focus.
@@ -97,6 +100,8 @@ labyrinth/               Canvas game and pure maze logic
 snake/                   Canvas game and pure Snake logic
 memory/                  DOM cards and original SVG symbols
 whac-a-mole/             DOM holes and original SVG moles
+flap/                    Canvas game and pure flight/collision logic
+blocks/                  Tall canvas well and pure falling-block logic
 tests/                   Logic and optional browser checks
 AGENTS.md                Coding-agent entry point and working conventions
 docs/GAME_DEVELOPMENT.md  New-game implementation and evaluation guide
@@ -106,11 +111,13 @@ PLAN.md                  Original product brief and quality standards
 ```
 
 Scripts use ordinary deferred script tags instead of JavaScript modules so that
-opening files directly works. Only the two canvas games have separate pure
+opening files directly works. The four canvas games have separate pure
 logic files. Shared utilities handle actual cross-game behavior; there is no
 game engine. Maze generation uses randomized depth-first search. Snake uses a
 fixed simulation step, buffers up to two valid turns, and permits entering the
-cell vacated by its tail. Card resolution and mole timing stop while paused.
+cell vacated by its tail. Card resolution and mole timing stop while paused. Flap runs fixed 1/240 s
+physics steps in board units. Blocks deals pieces from shuffled bags of seven,
+kicks rotations off walls, and delays locking briefly on the floor.
 
 ## Verification
 
@@ -122,7 +129,10 @@ node --test tests/logic.test.cjs
 
 It checks connectivity, reciprocal walls, boundary walls, and tree structure for
 120 generated mazes, plus Snake's input queue, reversals, growth, food placement,
-wall/body collisions, tail movement, and full-board victory.
+wall/body collisions, tail movement, and full-board victory; Flap's gravity,
+ceiling, crashes, single scoring, reachable gaps, and an autopilot clearing 50
+posts per difficulty; and Blocks' bags, rotation, kicks, gravity, lock delay,
+line clears, scoring, levels, and top-out.
 
 Browser checks are optional development tools, not app dependencies. With Node
 20+ and Playwright available outside the repository, start the preview server

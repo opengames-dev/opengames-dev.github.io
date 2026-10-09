@@ -7,7 +7,7 @@ window.OGInput = {
       const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
       if (keys[key] && direction && !event.target.closest('a, [data-difficulty]')) {
         event.preventDefault();
-        if (!event.repeat || hold) direction(keys[key]);
+        if (!event.repeat || hold) direction(keys[key], event.repeat);
       } else if (key === 'Escape' && !event.repeat) { pause?.(); }
       else if (key === 'r' && !event.repeat) { restart?.(); }
       else if ((key === ' ' || key === 'Enter') && !interactive(event.target)) {
@@ -25,7 +25,7 @@ window.OGInput = {
         release();
         button.setPointerCapture(event.pointerId);
         direction(button.dataset.direction);
-        if (hold) pressDelay = setTimeout(() => { pressRepeat = setInterval(() => direction(button.dataset.direction), 110); }, 240);
+        if (hold) pressDelay = setTimeout(() => { pressRepeat = setInterval(() => direction(button.dataset.direction, true), 110); }, 240);
       });
       button.addEventListener('click', event => { if (event.detail === 0) direction(button.dataset.direction); });
       button.addEventListener('lostpointercapture', release);
@@ -65,7 +65,7 @@ window.OGInput = {
         : Math.abs(x) > .45 && Math.abs(x) > Math.abs(y) ? (x > 0 ? 'right' : 'left')
         : Math.abs(y) > .45 ? (y > 0 ? 'down' : 'up') : '';
       if (!document.hidden && !document.getElementById('settings')?.open) {
-        if (move && (move !== previousDirection || (hold && now - lastMove > 140))) { direction?.(move); lastMove = now; }
+        if (move && (move !== previousDirection || (hold && now - lastMove > 140))) { direction?.(move, move === previousDirection); lastMove = now; }
         if (pressed(0) && !previousAction) action?.();
         if (pressed(9) && !previousPause) pause?.();
       }

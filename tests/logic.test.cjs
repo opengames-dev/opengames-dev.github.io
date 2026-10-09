@@ -2,6 +2,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const Maze = require('../labyrinth/logic.js');
 const Snake = require('../snake/logic.js');
+const Flap = require('../flap/logic.js');
+const Blocks = require('../blocks/logic.js');
 
 function seeded(seed) {
   return () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
@@ -93,4 +95,193 @@ test('Filling the board wins without attempting to place food in a full grid', (
   assert.equal(state.food, null);
   assert.equal(state.body.length, 4);
   assert.equal(state.won, true);
+});
+
+const STEP = 1 / 240;
+function fly(state, seconds) {
+  let result;
+  for (let t = 0; t < seconds && !state.over; t += STEP) result = Flap.step(state, STEP);
+  return result;
+}
+
+test('Flap waits for the first flap, then falls under gravity and stops at the ceiling', () => {
+  const state = Flap.create('normal', seeded(1));
+  assert.equal(fly(state, 3), 'wait');
+  assert.equal(state.bird.y, .44);
+  assert.equal(state.posts.length, 0);
+  assert.equal(Flap.flap(state), true);
+  const start = state.bird.y;
+  fly(state, .1);
+  assert(state.bird.y < start, 'a flap lifts the bird');
+  fly(state, .5);
+  assert(state.bird.vy > 0, 'gravity turns the climb into a fall');
+  const ceiling = Flap.create('normal', seeded(1));
+  for (let i = 0; i < 12; i++) { Flap.flap(ceiling); fly(ceiling, .05); }
+  assert.equal(ceiling.over, false);
+  assert(ceiling.bird.y >= Flap.radius);
+});
+
+test('Flap ends on the ground and on a post, and rejects flaps afterwards', () => {
+  const ground = Flap.create('easy', seeded(2));
+  Flap.flap(ground);
+  assert.equal(fly(ground, 5), 'crash');
+  assert.equal(ground.over, true);
+  assert.equal(Flap.flap(ground), false);
+  assert.equal(Flap.step(ground, STEP), 'over');
+  const post = Flap.create('normal', seeded(3));
+  Flap.flap(post);
+  post.posts = [{ x: Flap.birdX - .02, y: post.bird.y + .4, scored: false }];
+  assert.equal(Flap.step(post, STEP), 'crash');
+  const clear = Flap.create('normal', seeded(3));
+  Flap.flap(clear);
+  clear.posts = [{ x: Flap.birdX - .02, y: clear.bird.y, scored: false }];
+  assert.notEqual(Flap.step(clear, STEP), 'crash');
+});
+
+test('Flap scores each post once as the bird passes its middle', () => {
+  const state = Flap.create('normal', seeded(4));
+  Flap.flap(state);
+  state.bird.vy = 0;
+  state.posts = [{ x: Flap.birdX - Flap.postWidth / 2 + .0005, y: state.bird.y, scored: false }];
+  assert.equal(Flap.step(state, STEP), 'score');
+  assert.equal(state.score, 1);
+  assert.notEqual(Flap.step(state, STEP), 'score');
+  assert.equal(state.score, 1);
+});
+
+test('Flap gaps stay on the board, within reach of the last gap, and spaced evenly', () => {
+  for (const [level, config] of Object.entries(Flap.levels)) {
+    for (let seed = 0; seed < 30; seed++) {
+      const random = seeded(seed), state = Flap.create(level, random);
+      let previous = null;
+      for (let i = 0; i < 40; i++) {
+        const y = Flap.gapFor(state, previous, random);
+        assert(y - config.gap / 2 >= Flap.margin - 1e-9 && y + config.gap / 2 <= Flap.ground - Flap.margin + 1e-9);
+        if (previous != null) assert(Math.abs(y - previous) <= config.shift + 1e-9);
+        previous = y;
+      }
+    }
+  }
+  const state = Flap.create('hard', seeded(5));
+  Flap.flap(state);
+  for (let i = 0; i < 2000; i++) { state.bird.y = .44; state.bird.vy = 0; Flap.step(state, STEP); state.over = false; }
+  for (let i = 1; i < state.posts.length; i++) assert(Math.abs(state.posts[i].x - state.posts[i - 1].x - Flap.spacing) < 1e-9);
+});
+
+test('A simple steady pilot can clear many posts on every difficulty', () => {
+  for (const level of Object.keys(Flap.levels)) {
+    for (let seed = 0; seed < 10; seed++) {
+      const state = Flap.create(level, seeded(seed));
+      Flap.flap(state);
+      while (!state.over && state.score < 50) {
+        const next = state.posts.find(post => post.x + Flap.postWidth > Flap.birdX - Flap.radius);
+        const target = next ? next.y + .03 : .44;
+        if (state.bird.y > target && state.bird.vy > 0) Flap.flap(state);
+        Flap.step(state, STEP);
+      }
+      assert.equal(state.score, 50, `${level} seed ${seed} crashed at ${state.score}`);
+    }
+  }
+});
+
+function emptyBlocks(name = 'T', level = 'normal') {
+  const state = Blocks.create(level, seeded(1));
+  state.piece = { name, r: 0, x: 3, y: 0 };
+  return state;
+}
+
+test('Blocks deals every shape once per bag of seven', () => {
+  for (let seed = 0; seed < 20; seed++) {
+    const state = Blocks.create('normal', seeded(seed));
+    const dealt = [state.piece.name];
+    while (dealt.length < 14) { Blocks.hardDrop(state); dealt.push(state.piece.name); state.grid.forEach(row => row.fill('')); }
+    assert.deepEqual(dealt.slice(0, 7).sort(), Blocks.names.slice().sort());
+    assert.deepEqual(dealt.slice(7).sort(), Blocks.names.slice().sort());
+  }
+});
+
+test('Blocks rotations return home and keep four cells; walls and stacks block moves', () => {
+  for (const name of Blocks.names) {
+    const piece = { name, r: 0, x: 3, y: 2 };
+    const home = JSON.stringify(Blocks.cellsOf(piece).sort());
+    for (let r = 0; r < 4; r++) assert.equal(new Set(Blocks.cellsOf({ ...piece, r }).map(String)).size, 4);
+    assert.equal(JSON.stringify(Blocks.cellsOf({ ...piece, r: 4 % 4 }).sort()), home);
+  }
+  const state = emptyBlocks('T');
+  for (let i = 0; i < 10; i++) Blocks.shift(state, -1);
+  assert.equal(state.piece.x, 0);
+  assert.equal(Blocks.shift(state, -1), false);
+  state.grid[1][3] = 'Z';
+  assert.equal(Blocks.shift(state, 1), false);
+  assert.equal(state.piece.x, 0);
+});
+
+test('Blocks rotation kicks off a wall instead of failing', () => {
+  const state = emptyBlocks('I');
+  state.piece = { name: 'I', r: 1, x: -2, y: 4 };
+  assert(Blocks.fits(state, state.piece));
+  assert.equal(Blocks.rotate(state, 1), true);
+  assert(Blocks.cellsOf(state.piece).every(([x]) => x >= 0 && x < Blocks.width));
+  const o = emptyBlocks('O');
+  assert.equal(Blocks.rotate(o, 1), false);
+});
+
+test('Blocks gravity follows the level, and pieces lock only after the lock delay', () => {
+  const state = emptyBlocks('T', 'easy');
+  assert.equal(Blocks.interval(1), 1000);
+  Blocks.update(state, 999);
+  assert.equal(state.piece.y, 0);
+  Blocks.update(state, 1);
+  assert.equal(state.piece.y, 1);
+  state.piece.y = Blocks.ghost(state).y;
+  assert.equal(Blocks.update(state, Blocks.lockDelay - 1), 'wait');
+  assert.equal(Blocks.shift(state, 1), true);
+  assert.equal(Blocks.update(state, Blocks.lockDelay - 1), 'wait', 'moving on the floor resets the delay');
+  assert.equal(Blocks.update(state, 1), 'lock');
+  assert(state.grid[Blocks.height - 1].some(Boolean));
+  assert.equal(state.piece.y, 0);
+});
+
+test('Blocks clears full rows, collapses the stack, and scores by level', () => {
+  const state = emptyBlocks('I', 'normal');
+  for (const y of [19, 18, 17, 16]) for (let x = 0; x < 10; x++) if (x !== 9) state.grid[y][x] = 'O';
+  state.grid[15][0] = 'Z';
+  state.piece = { name: 'I', r: 1, x: 7, y: 0 };
+  const drop = Blocks.ghost(state).y - state.piece.y;
+  assert.equal(Blocks.hardDrop(state), 'clear');
+  assert.deepEqual(state.cleared, [16, 17, 18, 19]);
+  assert.equal(state.lines, 4);
+  assert.equal(state.score, 800 * 3 + drop * 2);
+  assert.equal(state.grid[19][0], 'Z');
+  assert.equal(state.grid.flat().filter(Boolean).length, 1);
+  const split = emptyBlocks('I');
+  for (let x = 0; x < 10; x++) { split.grid[19][x] = 'O'; split.grid[17][x] = 'O'; }
+  split.grid[18][0] = 'J'; split.grid[19][4] = '';
+  split.piece = { name: 'O', r: 0, x: 8, y: 0 };
+  split.grid[17][8] = split.grid[17][9] = '';
+  split.grid[16][3] = 'S';
+  Blocks.hardDrop(split);
+  assert.deepEqual(split.cleared, [17]);
+  assert.equal(split.grid[17][3], 'S');
+  assert.equal(split.grid[18][0], 'J');
+  assert.equal(split.grid[19][4], '');
+});
+
+test('Blocks levels rise every ten lines, and a blocked spawn ends the game', () => {
+  const state = emptyBlocks('I', 'hard');
+  assert.equal(state.level, 6);
+  state.lines = 9;
+  for (let x = 0; x < 6; x++) state.grid[19][x] = 'O';
+  state.piece = { name: 'I', r: 0, x: 6, y: 0 };
+  assert.equal(Blocks.hardDrop(state), 'clear');
+  assert.equal(state.level, 7);
+  const full = emptyBlocks('T');
+  for (let y = 2; y < 20; y++) for (let x = 0; x < 10; x++) if (x !== y % 10) full.grid[y][x] = 'O';
+  full.grid[1].fill('L'); full.grid[1][0] = '';
+  let result;
+  for (let i = 0; i < 4 && result !== 'over'; i++) result = Blocks.hardDrop(full);
+  assert.equal(result, 'over');
+  assert.equal(full.over, true);
+  assert.equal(Blocks.shift(full, 1), false);
+  assert.equal(Blocks.update(full, 5000), 'over');
 });

@@ -107,8 +107,8 @@ configured; the brand name alone does not establish domain ownership.
 ## D07 — State, timing, and input
 
 **Decision:** Each game owns rules, state, timers, rendering, and lifecycle.
-Shared helpers provide UI, input mapping, audio, storage, and square canvas
-sizing. Separate pure logic when it enables useful rule tests; do not require
+Shared helpers provide UI, input mapping, audio, storage, and DPR-aware canvas
+sizing (square or rectangular since D12). Separate pure logic when it enables useful rule tests; do not require
 logic.js for every small DOM game.
 
 Use requestAnimationFrame and elapsed time; preserve timing through pauses,
@@ -117,7 +117,7 @@ loss of window focus pause active play. Resuming the page alone does not resume
 the game. Game callbacks must reject input in paused/finished states.
 
 Touch and keyboard/mouse are first-class. Add gamepad only where appropriate
-(currently Labyrinth and Snake); avoid artificial mappings for direct-target
+(currently Labyrinth, Snake, Flap, and Blocks); avoid artificial mappings for direct-target
 games. The UI must remain usable without sound or optional APIs.
 
 ## D08 — Persistence, audio, and offline limits
@@ -140,10 +140,12 @@ future offline/PWA ideas in PLAN.md, avoiding cache invalidation complexity.
 | Snake | 20×20; starting intervals 185 / 140 / 105 ms, 2 ms faster per fruit down to 65 ms | Fixed-step simulation; at most two queued turns; no reversals; tail cell can be entered when it vacates; filling board is a win. |
 | Memory | 2×2 / 4×4 / 5×4, giving 2 / 8 / 10 pairs; 850 ms mismatch reveal | Hard replaces the plan's example 6×6 to preserve 44px targets on small phones. Block a third flip; pause mismatch resolution; symbols have names and matched checks. |
 | Whac-A-Mole | 3×3 holes, 30-second rounds; 1450 / 1150 / 900 ms initial reaction windows, reduced by up to 260 ms during a round | No consecutive repeat hole, no double score on one mole, immediate replay; direct tap and numbered keys suit the mechanic. |
+| Flap | Gaps 0.32 / 0.28 / 0.25 of board height; speeds 0.27 / 0.32 / 0.37 boards per second, +0.002 per point up to 40 | See D11. Hovers until the first flap; ceiling is safe, ground and posts end the run; one point per post. |
+| Blocks | 10×20 well; starting level 1 / 3 / 6; gravity 1000 ms × 0.8^(level−1), at least 60 ms; level +1 per 10 lines | See D12. Bag of seven; wall kicks; 500 ms lock delay with up to 15 resets; 100/300/500/800 × level per clear, +1 per soft-drop row, +2 per hard-drop row. |
 
-Labyrinth/Memory begin through interaction. Snake/Mole use an in-board Ready/Play
-state to avoid starting a timed challenge before the player is ready. Only
-Snake/Mole currently persist best scores. All games offer Easy/Normal/Hard;
+Labyrinth/Memory begin through interaction. Snake/Mole/Flap/Blocks use an in-board Ready/Play
+state to avoid starting a timed challenge before the player is ready. Snake,
+Mole, Flap, and Blocks persist best scores. All games offer Easy/Normal/Hard;
 a future game without meaningful difficulty should explicitly document and
 implement the shared-shell adaptation, rather than leave misleading buttons.
 
@@ -164,6 +166,64 @@ using forced clicks cannot establish natural pointer usability.
 Physical Android/iOS, hardware gamepad feel, Safari, audible sound quality, and
 public deployment have not all been verified. Keep limitations visible in
 TESTING.md; do not convert goals or emulation passes into claims of coverage.
+
+## D11 — Flap (added 2026-10-09)
+
+**Decision:** A one-button flying game in the familiar “fly through the gaps”
+genre, named **Flap** with original art: a round geometric orange bird, muted
+green posts, pale sky, and the collection's tan ground. Square canvas; physics
+in board units (gravity, flap impulse, capped fall speed) with fixed 1/240 s
+steps, so scale and frame rate do not change the game. Play shows the bird
+hovering; the first flap starts the posts, so starting from Restart or a
+difficulty change never drops the bird before the player acts. The ceiling
+is safe; ground and posts end the run.
+Flap from any input: tap/click on the board, Space/Enter/↑/W, or gamepad
+A / D-pad up. No D-pad, since only one action exists. Difficulty changes gap
+size, speed, and how far consecutive gaps may shift; a rule test checks that a
+simple autopilot clears 50 posts on every difficulty.
+Best score key: `opengames:flap:best:<difficulty>`.
+
+**Reason:** The user asked for a “flappy bird like game” in the OpenGames
+style. The trademarked name, bird, and pipe artwork are not copied (D03).
+
+## D12 — Blocks (added 2026-10-09)
+
+**Decision:** A falling-block puzzle named **Blocks** with original styling:
+rounded tiles in the collection's muted palette with a darker lower lip and a
+small shine, a dotted well, and a soft ghost outline where the piece will land.
+The user rejected the first flat tiles with a pale bar as not looking nice. A standard 10×20 well with the seven
+four-cell shapes, dealt from shuffled bags of seven. Rotation uses simple wall
+kicks. A 500 ms lock delay applies on the floor, reset by up to 15 successful
+moves. Soft and hard drop are available; there is no hold piece, keeping the
+controls small. Stats show Score, Lines, and a small Next canvas; best score
+appears in the result message, and its key is `opengames:blocks:best:<difficulty>`.
+
+The well is a 1:2 canvas rather than a square with empty side space, because
+that gives about 28–30px cells on phones instead of about 18px. Shared changes for this:
+`OG.canvasView` now sizes non-square canvases and passes `(context, width,
+height)`. `OGInput` passes a `repeat` flag so held ↑ / D-pad up / gamepad up
+rotate only once while held movement still repeats. Both changes are
+backward-compatible with the existing callbacks. Blocks adds a fifth
+on-screen Drop button, tap-to-rotate on the board, and X/Z rotation. It also
+reserves extra phone height for its control row, and in portrait focus view at
+600px or wider it uses the side-panel focus layout. Without that, controls
+above and below would shrink the tall well.
+
+**Reason:** The user asked to “add tetris”. “Tetris” is a closely guarded
+trademark and its trade dress is protected, so the game uses a generic name and
+the collection's own look (D03).
+
+## D13 — Versioned asset URLs (added 2026-10-09)
+
+**Decision:** Local CSS/JS references carry a shared `?v=<release date>` token,
+bumped on every page whenever runtime CSS/JS changes.
+
+**Reason:** After the shared canvas helper changed for Blocks, a browser that
+had cached the old `shared/ui.js` ran it with the new Blocks script. The well
+was stretched, never cleared, and smeared the falling piece. GitHub Pages
+serves files with a short cache lifetime, so visitors could hit the same mix
+after a deploy. A query token keeps the static, no-build approach (D06) and
+still works over `file://`.
 
 ## Maintaining this record
 

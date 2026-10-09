@@ -40,6 +40,8 @@ h1 { letter-spacing: -1.7px; }
 .game-page[data-game="snake"] { --accent: #3c6045; --tint: #e3eddf; }
 .game-page[data-game="memory"] { --accent: #785783; --tint: #eee3f0; }
 .game-page[data-game="whac-a-mole"] { --accent: #92542b; --tint: #f2e4ce; }
+.game-page[data-game="flap"] { --accent: #3f6377; --tint: #e1eaee; }
+.game-page[data-game="blocks"] { --accent: #50557a; --tint: #e6e6ef; }
 .game-header { height: 56px; max-width: 1320px; margin-inline: auto; padding: 0 20px; display: flex; align-items: center; gap: 24px; }
 .game-header h1 { font-size: 18px; letter-spacing: -.5px; margin: 0 0 0 auto; }
 .game-header .back-link { font-size: 12px; color: var(--muted); }

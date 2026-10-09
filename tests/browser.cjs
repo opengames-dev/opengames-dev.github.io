@@ -4,8 +4,9 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { chromium, firefox } = require('playwright');
 const base = process.env.TEST_URL || 'http://127.0.0.1:8080/';
-const games = ['labyrinth', 'snake', 'memory', 'whac-a-mole'];
+const games = ['labyrinth', 'snake', 'memory', 'whac-a-mole', 'flap', 'blocks'];
 const errors = [];
+let assetToken;
 
 async function visit(page, game) {
   await page.goto(base + (game ? game + '/' : '') + 'index.html');
@@ -33,18 +34,25 @@ async function run(browser, label, touch = false) {
     for (const game of ['', ...games]) {
       await visit(page, game);
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${label} ${game} overflows at ${viewport.width}`);
-      if (!game) { assert.equal(await page.locator('.game-card').count(), 4); continue; }
+      // One release token on every local asset keeps cached shared and game files in step.
+      const tokens = await page.evaluate(() => [...document.querySelectorAll('script[src], link[rel="stylesheet"]')].map(el => (el.getAttribute('src') || el.getAttribute('href')).split('?v=')[1]));
+      assert(tokens.length && tokens.every(token => token && token === tokens[0]), `${label} ${game}: unversioned or mixed asset URLs ${tokens}`);
+      assetToken ||= tokens[0];
+      assert.equal(tokens[0], assetToken, `${label} ${game}: asset version differs from other pages`);
+      if (!game) { assert.equal(await page.locator('.game-card').count(), 6); continue; }
       const box = await page.locator('#board').boundingBox();
-      assert(box.width >= 180 && box.width <= 1000, `${label} ${game}: invalid board ${box.width}`);
-      if (game !== 'memory') assert(Math.abs(box.width - box.height) < 2, `${label} ${game}: nonsquare board`);
+      // Blocks' tall well is limited by height in short landscape views.
+      assert(Math.max(box.width, box.height) >= 180 && box.width <= 1000, `${label} ${game}: invalid board ${box.width}`);
+      if (game === 'blocks') assert(Math.abs(box.width * 2 - box.height) < 3, `${label} blocks: well is not 1:2`);
+      else if (game !== 'memory') assert(Math.abs(box.width - box.height) < 2, `${label} ${game}: nonsquare board`);
       assert(box.y + box.height <= viewport.height + 1, `${label} ${game}: board below viewport at ${viewport.width}×${viewport.height}`);
       await press(page, '[data-difficulty="easy"]');
       assert.equal(await page.locator('[data-difficulty="easy"]').getAttribute('aria-pressed'), 'true');
       await press(page, '#sound');
       assert.equal(await page.locator('#sound').getAttribute('aria-pressed'), 'true');
       await press(page, '#sound');
-      if (game === 'labyrinth' || game === 'snake') {
-        assert(await page.locator('canvas').evaluate(canvas => Math.abs(canvas.width - canvas.getBoundingClientRect().width * devicePixelRatio) < 2));
+      if (game === 'labyrinth' || game === 'snake' || game === 'flap' || game === 'blocks') {
+        assert(await page.locator('#board').evaluate(canvas => Math.abs(canvas.width - canvas.getBoundingClientRect().width * devicePixelRatio) < 2 && Math.abs(canvas.height - canvas.getBoundingClientRect().height * devicePixelRatio) < 2));
       }
     }
   }
@@ -185,6 +193,100 @@ async function run(browser, label, touch = false) {
   await press(page, '#restart');
   assert.equal(await page.locator('#overlay').isVisible(), false);
   console.log(`${label}: Mole touch/click, double-hit protection, keyboard, timer, and replay passed`);
+
+  // Flap: the bird hovers until the first flap, then posts pass while it keeps flying.
+  await visit(page, 'flap');
+  await press(page, '[data-difficulty="normal"]');
+  await page.evaluate(() => {
+    const create = FlapLogic.create;
+    // Wide gaps centred at the start height let a steady flap rhythm keep scoring.
+    FlapLogic.create = level => { window.testFlap = create(level, () => .5); window.testFlap.gap = .7; return window.testFlap; };
+  });
+  await press(page, '#restart');
+  assert.equal(await page.locator('#overlay').isVisible(), false);
+  await page.clock.runFor(3000);
+  assert.equal(await page.evaluate(() => window.testFlap.started), false);
+  assert.equal(await page.evaluate(() => window.testFlap.posts.length), 0);
+  await page.locator('#board').focus();
+  if (touch) await page.locator('#board').tap();
+  else await page.locator('#board').click();
+  assert.equal(await page.evaluate(() => window.testFlap.started), true);
+  for (let i = 0; i < 16; i++) { await page.clock.runFor(600); await page.keyboard.press(i % 2 ? 'Space' : 'ArrowUp'); }
+  const flapScore = Number(await page.locator('#score').textContent());
+  assert(flapScore >= 2, `Flap scored ${flapScore}`);
+  await page.keyboard.press('Escape');
+  const flown = await page.evaluate(() => JSON.stringify(window.testFlap.bird));
+  await page.clock.runFor(5000);
+  assert.equal(await page.locator('#overlay-title').textContent(), 'Paused');
+  assert.equal(await page.evaluate(() => JSON.stringify(window.testFlap.bird)), flown);
+  await page.keyboard.press('Space');
+  assert.equal(await page.locator('#overlay').isVisible(), false);
+  await page.clock.runFor(4000);
+  assert.equal(await page.locator('#overlay-title').textContent(), 'Game over');
+  const flapFinal = await page.locator('#score').textContent();
+  assert(Number(flapFinal) >= flapScore);
+  assert.equal(await page.locator('#best').textContent(), flapFinal);
+  await page.keyboard.press('Space');
+  assert.equal(await page.locator('#overlay').isVisible(), false);
+  assert.equal(await page.locator('#score').textContent(), '0');
+  await page.keyboard.press('r');
+  assert.equal(await page.locator('#overlay').isVisible(), false);
+  await page.reload();
+  assert.equal(await page.locator('#best').textContent(), flapFinal);
+  console.log(`${label}: Flap hover start, pointer/keyboard flaps, scoring, pause, crash, replay, and persistence passed`);
+
+  // Blocks: keyboard moves/rotations, a line clear, paused gravity, top-out, and replay.
+  await visit(page, 'blocks');
+  await press(page, '[data-difficulty="easy"]');
+  await page.evaluate(() => {
+    const create = BlocksLogic.create;
+    BlocksLogic.create = (...args) => {
+      const state = window.testBlocks = create(...args);
+      // Leave a one-wide hole in the bottom row and start with an upright I piece.
+      for (let x = 0; x < 9; x++) state.grid[19][x] = 'O';
+      state.piece = { name: 'I', r: 1, x: 3, y: 0 };
+      return state;
+    };
+  });
+  await press(page, '#restart');
+  await page.locator('#board').focus();
+  const cells = () => page.evaluate(() => JSON.stringify(BlocksLogic.cellsOf(window.testBlocks.piece)));
+  const upright = await cells();
+  await page.keyboard.press('ArrowUp');
+  assert.notEqual(await cells(), upright, 'Up rotates');
+  await page.keyboard.down('ArrowUp'); await page.keyboard.down('ArrowUp'); await page.keyboard.up('ArrowUp');
+  assert.equal(await page.evaluate(() => window.testBlocks.piece.r), 3, 'held Up rotates once');
+  await page.keyboard.press('z');
+  await page.keyboard.press('z');
+  assert.equal(await page.evaluate(() => window.testBlocks.piece.r), 1);
+  for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowRight');
+  assert.equal(await page.evaluate(() => Math.max(...BlocksLogic.cellsOf(window.testBlocks.piece).map(c => c[0]))), 9);
+  await page.keyboard.press('ArrowDown');
+  assert.equal(await page.evaluate(() => window.testBlocks.piece.y), 1);
+  await page.keyboard.press('Space');
+  assert.equal(await page.locator('#lines').textContent(), '1');
+  assert(Number(await page.locator('#score').textContent()) >= 100);
+  assert.equal(await page.evaluate(() => window.testBlocks.grid[19].filter(Boolean).length), 1);
+  const fallingY = await page.evaluate(() => window.testBlocks.piece.y);
+  await page.locator('#pause').click({force:true});
+  await page.clock.runFor(5000);
+  assert.equal(await page.evaluate(() => window.testBlocks.piece.y), fallingY);
+  await press(page, '#overlay-action');
+  await page.clock.runFor(1100);
+  assert.equal(await page.evaluate(() => window.testBlocks.piece.y), fallingY + 1, 'Easy gravity drops a row each second');
+  await page.locator('#board').focus();
+  for (let i = 0; i < 40 && !(await page.locator('#overlay').isVisible()); i++) await page.keyboard.press('Space');
+  assert.equal(await page.locator('#overlay-title').textContent(), 'Game over');
+  const blocksScore = await page.locator('#score').textContent();
+  assert.match(await page.locator('#overlay-message').textContent(), new RegExp(`Best ${blocksScore}$`));
+  await page.keyboard.press('Enter');
+  assert.equal(await page.locator('#overlay').isVisible(), false);
+  assert.equal(await page.locator('#lines').textContent(), '0');
+  await page.locator('[data-direction="left"]').click({force:true});
+  await press(page, '#drop');
+  assert.equal(await page.evaluate(() => window.testBlocks.grid.flat().filter(Boolean).length), 13);
+  assert.match(await page.locator('#next').getAttribute('aria-label'), /^Next piece: [IOTSZJL]$/);
+  console.log(`${label}: Blocks rotation, held-key guard, movement, line clear, pause, top-out, and replay passed`);
 
   // No web server is required. All pages also load through file://.
   for (const game of games) {
